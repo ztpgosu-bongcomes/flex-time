@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>탄력근무 관리 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text: #e8eaf6;
+    --text2: #8b90a7;
+    --text3: #4a4f6a;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .header-logo .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .nav { display: flex; gap: 4px; }
+  .nav-btn {
+    background: none; border: none; color: var(--text2);
+    padding: 8px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-family: 'Pretendard', sans-serif;
+    font-weight: 500; transition: all 0.2s;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: #fff; }
+
+  .main { flex: 1; padding: 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* DASHBOARD */
+  .page-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 6px;
+  }
+  .page-subtitle { color: var(--text2); font-size: 13px; margin-bottom: 28px; }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+  }
+  .stat-label { color: var(--text2); font-size: 12px; font-weight: 500; margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .stat-value { font-size: 28px; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.blue { color: var(--accent); }
+
+  .section-title {
+    font-size: 15px; font-weight: 600; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::before {
+    content: ''; width: 3px; height: 16px;
+    background: var(--accent); border-radius: 2px;
+  }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 28px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th {
+    padding: 12px 16px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    letter-spacing: 0.6px; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 13px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(79,142,247,0.04); }
+  .td-name { font-weight: 600; }
+  .td-time { font-family: 'Space Mono', monospace; font-size: 12px; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .badge.green { background: rgba(34,197,94,0.12); color: var(--green); }
+  .badge.red { background: rgba(239,68,68,0.12); color: var(--red); }
+  .badge.yellow { background: rgba(245,158,11,0.12); color: var(--yellow); }
+  .badge.blue { background: rgba(79,142,247,0.12); color: var(--accent); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .progress-bar.green { background: var(--green); }
+  .progress-bar.yellow { background: var(--yellow); }
+  .progress-bar.red { background: var(--red); }
+
+  /* FORM PAGE */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px;
+  }
+  .form-card-title {
+    font-size: 16px; font-weight: 700; margin-bottom: 6px;
+  }
+  .form-card-desc { color: var(--text2); font-size: 12px; margin-bottom: 24px; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-label {
+    display: block; font-size: 12px; font-weight: 600;
+    color: var(--text2); margin-bottom: 8px; letter-spacing: 0.3px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-size: 13px;
+    font-family: 'Pretendard', sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+  }
+  .form-select { cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b90a7' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { height: 80px; resize: vertical; }
+
+  .time-row { display: flex; gap: 8px; align-items: center; }
+  .time-sep { color: var(--text2); font-size: 12px; font-weight: 500; white-space: nowrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; font-family: 'Pretendard', sans-serif;
+    transition: all 0.2s; width: 100%; margin-top: 4px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a7ae8; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,142,247,0.3); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(34,197,94,0.3); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.08); }
+  .btn-sm { padding: 6px 12px; font-size: 11px; width: auto; margin-top: 0; }
+
+  /* HISTORY PAGE */
+  .filter-bar {
+    display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-bar .form-select { width: auto; flex: 1; min-width: 120px; }
+
+  /* TOAST */
+  .toast-wrap { position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+  .toast {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px; min-width: 280px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: var(--shadow); animation: slideIn 0.3s ease;
+    font-size: 13px;
+  }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+  /* MODAL */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 420px;
+    box-shadow: var(--shadow);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .modal-desc { color: var(--text2); font-size: 12px; margin-bottom: 24px; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-btns .btn { margin-top: 0; }
+
+  /* CONFIG */
+  .config-section { margin-bottom: 32px; }
+  .config-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px; font-size: 12px;
+  }
+  .tag-remove { cursor: pointer; color: var(--text3); font-size: 14px; transition: color 0.2s; line-height: 1; }
+  .tag-remove:hover { color: var(--red); }
+  .add-row { display: flex; gap: 8px; }
+  .add-row .form-input { flex: 1; }
+  .add-row .btn { width: auto; flex-shrink: 0; }
+
+  /* GOOGLE SHEETS CONFIG */
+  .setup-card {
+    background: linear-gradient(135deg, rgba(79,142,247,0.08), rgba(124,92,252,0.08));
+    border: 1px solid rgba(79,142,247,0.25);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+  }
+  .setup-step { display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .step-text strong { color: var(--text); }
+  .code-block {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px; font-family: 'Space Mono', monospace;
+    font-size: 11px; color: var(--accent); margin-top: 6px;
+    word-break: break-all;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    padding: 48px; text-align: center; color: var(--text3);
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-text { font-size: 13px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .header { padding: 0 16px; }
+    .nav-btn span { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="dot"></div>
+      탄력근무 관리
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showPage('dashboard')">📊 <span>대시보드</span></button>
+      <button class="nav-btn" onclick="showPage('input')">✏️ <span>입력</span></button>
+      <button class="nav-btn" onclick="showPage('history')">📋 <span>내역</span></button>
+      <button class="nav-btn" onclick="showPage('config')">⚙️ <span>설정</span></button>
+    </nav>
+  </header>
+
+  <main class="main">
+
+    <!-- ====== DASHBOARD ====== -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">현황 대시보드</div>
+      <div class="page-subtitle" id="dashboard-subtitle">팀원별 탄력시간 잔여 현황</div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">전체 팀원</div>
+          <div class="stat-value blue" id="stat-total-members">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">잔여시간 보유자</div>
+          <div class="stat-value green" id="stat-has-time">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">서둘러 사용 필요</div>
+          <div class="stat-value red" id="stat-urgent">0</div>
+        </div>
+      </div>
+
+      <div class="section-title">팀원별 탄력시간 현황</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>팀원명</th>
+              <th>잔여시간</th>
+              <th>이달 발생</th>
+              <th>이달 사용</th>
+              <th>누적 잔여</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-tbody">
+            <tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><div class="empty-text">데이터가 없습니다</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ====== INPUT ====== -->
+    <div id="page-input" class="page">
+      <div class="page-title">탄력시간 입력</div>
+      <div class="page-subtitle">발생 또는 사용 내역을 등록하세요</div>
+
+      <div class="form-grid">
+        <!-- 발생 폼 -->
+        <div class="form-card">
+          <div class="form-card-title">⏰ 탄력시간 발생</div>
+          <div class="form-card-desc">초과 근무로 발생한 탄력시간을 등록합니다</div>
+
+          <div class="form-group">
+            <label class="form-label">팀원명 *</label>
+            <select class="form-select" id="gen-employee"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">날짜 *</label>
+            <input type="date" class="form-input" id="gen-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">발생 시간 *</label>
+            <div class="time-row">
+              <select class="form-select" id="gen-hours"></select>
+              <span class="time-sep">시간</span>
+              <select class="form-select" id="gen-minutes"></select>
+              <span class="time-sep">분</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">사유 *</label>
+            <select class="form-select" id="gen-reason"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">비고</label>
+            <textarea class="form-textarea" id="gen-note" placeholder="추가 메모 (선택)"></textarea>
+          </div>
+          <button class="btn btn-success" onclick="submitGenerate()">✅ 발생 등록</button>
+        </div>
+
+        <!-- 사용 폼 -->
+        <div class="form-card">
+          <div class="form-card-title">💳 탄력시간 사용</div>
+          <div class="form-card-desc">탄력시간 사용 내역을 등록합니다</div>
+
+          <div class="form-group">
+            <label class="form-label">팀원명 *</label>
+            <select class="form-select" id="use-employee" onchange="updateAvailableTime()"></select>
+          </div>
+          <div id="available-time-box" style="display:none; background:rgba(79,142,247,0.08); border:1px solid rgba(79,142,247,0.2); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--accent);">
+            💎 사용 가능: <strong id="available-time-text">0시간 0분</strong>
+          </div>
+          <div class="form-group">
+            <label class="form-label">날짜 *</label>
+            <input type="date" class="form-input" id="use-date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">사용 시간 *</label>
+            <div class="time-row">
+              <select class="form-select" id="use-hours"></select>
+              <span class="time-sep">시간</span>
+              <select class="form-select" id="use-minutes"></select>
+              <span class="time-sep">분</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">사유 *</label>
+            <select class="form-select" id="use-reason"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">비고</label>
+            <textarea class="form-textarea" id="use-note" placeholder="추가 메모 (선택)"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="submitUse()">✅ 사용 등록</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== HISTORY ====== -->
+    <div id="page-history" class="page">
+      <div class="page-title">입력 내역</div>
+      <div class="page-subtitle">발생 및 사용 전체 내역을 확인합니다</div>
+
+      <div class="filter-bar">
+        <select class="form-select" id="filter-member" onchange="renderHistory()">
+          <option value="">전체 팀원</option>
+        </select>
+        <select class="form-select" id="filter-type" onchange="renderHistory()">
+          <option value="">발생 + 사용</option>
+          <option value="generate">발생만</option>
+          <option value="use">사용만</option>
+        </select>
+        <select class="form-select" id="filter-month" onchange="renderHistory()">
+          <option value="">전체 기간</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteChecked()" id="delete-btn" style="display:none">🗑️ 선택 삭제</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px"><input type="checkbox" id="check-all" onchange="toggleAllCheck()" style="accent-color:var(--accent)"></th>
+              <th>팀원명</th>
+              <th>유형</th>
+              <th>날짜</th>
+              <th>시간</th>
+              <th>사유</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ====== CONFIG ====== -->
+    <div id="page-config" class="page">
+      <div class="page-title">시스템 설정</div>
+      <div class="page-subtitle">팀원, 사유 목록 및 Google Sheets 연동을 설정합니다</div>
+
+      <!-- Google Sheets 연동 안내 -->
+      <div class="setup-card">
+        <div class="section-title">Google Sheets 연동 (선택)</div>
+        <div style="color:var(--text2); font-size:12px; margin-bottom:16px; line-height:1.7;">
+          연동하지 않으면 데이터가 브라우저(LocalStorage)에 저장됩니다.<br>
+          팀원 전체가 공유하려면 아래 Google Apps Script 설정을 완료하세요.
+        </div>
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Google Sheets</strong>를 새로 만들고, 메뉴 → <strong>확장 프로그램 → Apps Script</strong> 클릭</div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-text">아래 코드를 Apps Script에 붙여넣고 <strong>배포 → 새 배포 → 웹 앱</strong>으로 배포 (액세스: 모든 사용자)</div>
+        </div>
+        <div class="code-block" id="gas-code-block" style="max-height:120px; overflow-y:auto; line-height:1.8;">
+function doPost(e) {
+  var data = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(data.sheet) || ss.insertSheet(data.sheet);
+  if (data.action === 'append') {
+    sheet.appendRow(data.row);
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === 'read') {
+    var rows = sheet.getDataRange().getValues();
+    return ContentService.createTextOutput(JSON.stringify({rows:rows})).setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === 'delete') {
+    var rows = sheet.getDataRange().getValues();
+    for (var i = rows.length; i >= 2; i--) {
+      if (rows[i-1][0] === data.id) sheet.deleteRow(i);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+        </div>
+        <div class="setup-step" style="margin-top:14px">
+          <div class="step-num">3</div>
+          <div class="step-text">배포 후 생성된 <strong>웹 앱 URL</strong>을 아래에 입력</div>
+        </div>
+        <div class="add-row" style="margin-top:8px">
+          <input type="text" class="form-input" id="gas-url" placeholder="https://script.google.com/macros/s/..." style="font-size:11px;">
+          <button class="btn btn-primary btn-sm" onclick="saveGasUrl()">저장</button>
+          <button class="btn btn-sm" style="background:var(--surface2); color:var(--text2); width:auto;" onclick="testGasConnection()">테스트</button>
+        </div>
+        <div id="gas-status" style="font-size:11px; margin-top:8px; color:var(--text3);"></div>
+      </div>
+
+      <!-- 팀원 설정 -->
+      <div class="config-section">
+        <div class="config-section-title">👥 팀원 목록</div>
+        <div class="tag-list" id="member-tags"></div>
+        <div class="add-row">
+          <input type="text" class="form-input" id="new-member" placeholder="팀원 이름 입력">
+          <button class="btn btn-primary btn-sm" onclick="addMember()">+ 추가</button>
+        </div>
+      </div>
+
+      <!-- 발생 사유 -->
+      <div class="config-section">
+        <div class="config-section-title">⏰ 발생 사유 목록</div>
+        <div class="tag-list" id="gen-reason-tags"></div>
+        <div class="add-row">
+          <input type="text" class="form-input" id="new-gen-reason" placeholder="발생 사유 입력">
+          <button class="btn btn-primary btn-sm" onclick="addGenReason()">+ 추가</button>
+        </div>
+      </div>
+
+      <!-- 사용 사유 -->
+      <div class="config-section">
+        <div class="config-section-title">💳 사용 사유 목록</div>
+        <div class="tag-list" id="use-reason-tags"></div>
+        <div class="add-row">
+          <input type="text" class="form-input" id="new-use-reason" placeholder="사용 사유 입력">
+          <button class="btn btn-primary btn-sm" onclick="addUseReason()">+ 추가</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:10px;">
+        <button class="btn btn-danger btn-sm" onclick="confirmReset()">🗑️ 전체 데이터 초기화</button>
+        <button class="btn btn-sm" style="background:var(--surface2); color:var(--text2); width:auto;" onclick="exportCSV()">📥 CSV 내보내기</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">확인</div>
+    <div class="modal-desc" id="modal-desc"></div>
+    <div class="modal-btns">
+      <button class="btn btn-danger" id="modal-confirm-btn">확인</button>
+      <button class="btn" style="background:var(--surface2); color:var(--text2);" onclick="closeModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let state = {
+  members: ['이수은','오솔길','김봉섭','강희연','배용호','서시내','장설아','노태수','유종화','임정인','박지수','노혜진','조예본'],
+  genReasons: ['출장','야근','주말근무','휴일근무','교육','기타'],
+  useReasons: ['조기출근','지각','휴가','병가','공가','개인사정','기타'],
+  records: [], // {id, type:'generate'|'use', employee, date, hours, minutes, reason, note, ts}
+  gasUrl: ''
+};
+
+function saveState() {
+  localStorage.setItem('flex_state', JSON.stringify(state));
+}
+function loadState() {
+  const saved = localStorage.getItem('flex_state');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    } catch(e) {}
+  }
+}
+
+// ===================== INIT =====================
+function init() {
+  loadState();
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('gen-date').value = today;
+  document.getElementById('use-date').value = today;
+  if (state.gasUrl) document.getElementById('gas-url').value = state.gasUrl;
+  populateSelects();
+  renderDashboard();
+  renderConfig();
+}
+
+function populateSelects() {
+  // Hours 0-12, Minutes 0,5,...55
+  ['gen-hours','use-hours'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">시간</option>';
+    for(let i=0;i<=12;i++) el.innerHTML += `<option value="${i}">${i}</option>`;
+  });
+  ['gen-minutes','use-minutes'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">분</option>';
+    [0,5,10,15,20,25,30,35,40,45,50,55].forEach(m => el.innerHTML += `<option value="${m}">${String(m).padStart(2,'0')}</option>`);
+  });
+
+  // Employee selects
+  ['gen-employee','use-employee'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = '<option value="">팀원 선택</option>';
+    state.members.forEach(m => el.innerHTML += `<option value="${m}">${m}</option>`);
+  });
+
+  // Reasons
+  const gr = document.getElementById('gen-reason');
+  gr.innerHTML = '<option value="">사유 선택</option>';
+  state.genReasons.forEach(r => gr.innerHTML += `<option value="${r}">${r}</option>`);
+
+  const ur = document.getElementById('use-reason');
+  ur.innerHTML = '<option value="">사유 선택</option>';
+  state.useReasons.forEach(r => ur.innerHTML += `<option value="${r}">${r}</option>`);
+
+  // Filter member
+  const fm = document.getElementById('filter-member');
+  const curVal = fm.value;
+  fm.innerHTML = '<option value="">전체 팀원</option>';
+  state.members.forEach(m => fm.innerHTML += `<option value="${m}">${m}</option>`);
+  fm.value = curVal;
+}
+
+// ===================== TIME UTILS =====================
+function toDecimal(h, m) { return parseInt(h||0) + parseInt(m||0)/60; }
+function toDisplay(decimal) {
+  if(!decimal || decimal <= 0) return '0시간 00분';
+  const h = Math.floor(decimal);
+  const m = Math.round((decimal - h) * 60);
+  return `${h}시간 ${String(m).padStart(2,'0')}분`;
+}
+function getAvailable(name) {
+  const gen = state.records.filter(r=>r.type==='generate'&&r.employee===name).reduce((s,r)=>s+toDecimal(r.hours,r.minutes),0);
+  const use = state.records.filter(r=>r.type==='use'&&r.employee===name).reduce((s,r)=>s+toDecimal(r.hours,r.minutes),0);
+  return Math.max(0, Math.round((gen-use)*100)/100);
+}
+function getMonthly(name, type, year, month) {
+  return state.records.filter(r => {
+    const d = new Date(r.date);
+    return r.type===type && r.employee===name && d.getFullYear()===year && d.getMonth()+1===month;
+  }).reduce((s,r)=>s+toDecimal(r.hours,r.minutes),0);
+}
+function getStatus(name) {
+  const oldest = state.records.filter(r=>r.type==='generate'&&r.employee===name)
+    .map(r=>new Date(r.date)).sort((a,b)=>a-b)[0];
+  if(!oldest) return 'green';
+  const now = new Date();
+  const months = (now.getFullYear()-oldest.getFullYear())*12 + (now.getMonth()-oldest.getMonth());
+  return months >= 1 ? 'red' : 'green';
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const now = new Date();
+  const year = now.getFullYear(); const month = now.getMonth()+1;
+  document.getElementById('dashboard-subtitle').textContent = `${year}년 ${month}월 기준 팀원별 탄력시간 현황`;
+
+  let hasTime = 0, urgent = 0;
+  const rows = state.members.map(m => {
+    const avail = getAvailable(m);
+    const mGen = getMonthly(m,'generate',year,month);
+    const mUse = getMonthly(m,'use',year,month);
+    const status = getStatus(m);
+    if(avail > 0) hasTime++;
+    if(status==='red' && avail > 0) urgent++;
+
+    const maxH = 8;
+    const pct = Math.min(100, (avail/maxH)*100);
+    const barColor = avail===0 ? 'green' : status==='red' ? 'red' : 'green';
+    const badge = avail===0 ? '' : status==='red'
+      ? `<span class="badge red">❤️ 서둘러사용</span>`
+      : `<span class="badge green">💚 여유시간</span>`;
+
+    return `<tr>
+      <td class="td-name">${m}</td>
+      <td>
+        <div style="margin-bottom:6px; font-size:12px; font-family:'Space Mono',monospace; font-weight:700; color:${avail>0?'var(--green)':'var(--text3)'}">${toDisplay(avail)}</div>
+        <div class="progress-wrap" style="width:140px">
+          <div class="progress-bar ${barColor}" style="width:${pct}%"></div>
+        </div>
+      </td>
+      <td class="td-time">${toDisplay(mGen)}</td>
+      <td class="td-time">${toDisplay(mUse)}</td>
+      <td class="td-time" style="color:${avail>0?'var(--accent)':'var(--text3)'}">${toDisplay(avail)}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('stat-total-members').textContent = state.members.length;
+  document.getElementById('stat-has-time').textContent = hasTime;
+  document.getElementById('stat-urgent').textContent = urgent;
+  document.getElementById('dashboard-tbody').innerHTML = rows || `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📭</div><div class="empty-text">데이터 없음</div></div></td></tr>`;
+}
+
+// ===================== SUBMIT =====================
+function submitGenerate() {
+  const emp = document.getElementById('gen-employee').value;
+  const date = document.getElementById('gen-date').value;
+  const h = document.getElementById('gen-hours').value;
+  const m = document.getElementById('gen-minutes').value;
+  const reason = document.getElementById('gen-reason').value;
+  const note = document.getElementById('gen-note').value;
+
+  if(!emp||!date||h===''||m===''||!reason) return showToast('필수 항목을 모두 입력해주세요.','error');
+  if(parseInt(h)===0 && parseInt(m)===0) return showToast('시간은 0분보다 커야 합니다.','error');
+
+  const record = { id: Date.now()+'_'+Math.random().toString(36).slice(2), type:'generate', employee:emp, date, hours:h, minutes:m, reason, note, ts: Date.now() };
+  state.records.push(record);
+  saveState();
+  syncToSheets(record, '탄력시간발생');
+
+  showToast(`${emp}님 탄력시간 ${toDisplay(toDecimal(h,m))} 발생 등록 완료!`, 'success');
+  document.getElementById('gen-hours').value = '';
+  document.getElementById('gen-minutes').value = '';
+  document.getElementById('gen-note').value = '';
+  renderDashboard();
+}
+
+function submitUse() {
+  const emp = document.getElementById('use-employee').value;
+  const date = document.getElementById('use-date').value;
+  const h = document.getElementById('use-hours').value;
+  const m = document.getElementById('use-minutes').value;
+  const reason = document.getElementById('use-reason').value;
+  const note = document.getElementById('use-note').value;
+
+  if(!emp||!date||h===''||m===''||!reason) return showToast('필수 항목을 모두 입력해주세요.','error');
+  if(parseInt(h)===0 && parseInt(m)===0) return showToast('시간은 0분보다 커야 합니다.','error');
+
+  const avail = getAvailable(emp);
+  const useTime = toDecimal(h, m);
+  if(useTime > avail) return showToast(`사용 가능 시간(${toDisplay(avail)})을 초과했습니다.`, 'error');
+
+  const record = { id: Date.now()+'_'+Math.random().toString(36).slice(2), type:'use', employee:emp, date, hours:h, minutes:m, reason, note, ts: Date.now() };
+  state.records.push(record);
+  saveState();
+  syncToSheets(record, '탄력시간사용');
+
+  showToast(`${emp}님 탄력시간 ${toDisplay(useTime)} 사용 등록 완료!`, 'success');
+  document.getElementById('use-hours').value = '';
+  document.getElementById('use-minutes').value = '';
+  document.getElementById('use-note').value = '';
+  updateAvailableTime();
+  renderDashboard();
+}
+
+function updateAvailableTime() {
+  const emp = document.getElementById('use-employee').value;
+  const box = document.getElementById('available-time-box');
+  if(!emp) { box.style.display='none'; return; }
+  const avail = getAvailable(emp);
+  document.getElementById('available-time-text').textContent = toDisplay(avail);
+  box.style.display = 'block';
+}
+
+// ===================== HISTORY =====================
+function renderHistory() {
+  const memberFilter = document.getElementById('filter-member').value;
+  const typeFilter = document.getElementById('filter-type').value;
+  const monthFilter = document.getElementById('filter-month').value;
+
+  let records = [...state.records].sort((a,b)=>b.ts-a.ts);
+  if(memberFilter) records = records.filter(r=>r.employee===memberFilter);
+  if(typeFilter) records = records.filter(r=>r.type===typeFilter);
+  if(monthFilter) records = records.filter(r=>r.date.startsWith(monthFilter));
+
+  populateMonthFilter();
+
+  const tbody = document.getElementById('history-tbody');
+  if(!records.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div><div class="empty-text">내역이 없습니다</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = records.map(r => {
+    const typeBadge = r.type==='generate'
+      ? `<span class="badge green">⏰ 발생</span>`
+      : `<span class="badge blue">💳 사용</span>`;
+    return `<tr>
+      <td><input type="checkbox" class="row-check" data-id="${r.id}" onchange="updateDeleteBtn()" style="accent-color:var(--accent)"></td>
+      <td class="td-name">${r.employee}</td>
+      <td>${typeBadge}</td>
+      <td>${r.date}</td>
+      <td class="td-time">${toDisplay(toDecimal(r.hours,r.minutes))}</td>
+      <td>${r.reason}</td>
+      <td style="color:var(--text2)">${r.note||'-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function populateMonthFilter() {
+  const months = [...new Set(state.records.map(r=>r.date.slice(0,7)))].sort().reverse();
+  const sel = document.getElementById('filter-month');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">전체 기간</option>';
+  months.forEach(m => {
+    const [y,mo] = m.split('-');
+    sel.innerHTML += `<option value="${m}">${y}년 ${parseInt(mo)}월</option>`;
+  });
+  sel.value = cur;
+}
+
+function toggleAllCheck() {
+  const all = document.getElementById('check-all').checked;
+  document.querySelectorAll('.row-check').forEach(c=>c.checked=all);
+  updateDeleteBtn();
+}
+function updateDeleteBtn() {
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  document.getElementById('delete-btn').style.display = checked > 0 ? 'inline-flex' : 'none';
+}
+function confirmDeleteChecked() {
+  const ids = [...document.querySelectorAll('.row-check:checked')].map(c=>c.dataset.id);
+  openModal('선택 항목 삭제', `${ids.length}개 항목을 삭제하시겠습니까?`, () => {
+    state.records = state.records.filter(r=>!ids.includes(r.id));
+    saveState();
+    renderHistory();
+    renderDashboard();
+    showToast(`${ids.length}개 항목이 삭제되었습니다.`, 'success');
+  });
+}
+
+// ===================== CONFIG =====================
+function renderConfig() {
+  // Members
+  document.getElementById('member-tags').innerHTML = state.members.map(m =>
+    `<div class="tag">${m} <span class="tag-remove" onclick="removeMember('${m}')">×</span></div>`
+  ).join('');
+  // Gen reasons
+  document.getElementById('gen-reason-tags').innerHTML = state.genReasons.map(r =>
+    `<div class="tag">${r} <span class="tag-remove" onclick="removeGenReason('${r}')">×</span></div>`
+  ).join('');
+  // Use reasons
+  document.getElementById('use-reason-tags').innerHTML = state.useReasons.map(r =>
+    `<div class="tag">${r} <span class="tag-remove" onclick="removeUseReason('${r}')">×</span></div>`
+  ).join('');
+}
+
+function addMember() {
+  const val = document.getElementById('new-member').value.trim();
+  if(!val) return;
+  if(state.members.includes(val)) return showToast('이미 있는 팀원입니다.','error');
+  state.members.push(val);
+  saveState(); populateSelects(); renderConfig();
+  document.getElementById('new-member').value = '';
+  showToast(`${val} 팀원 추가 완료`, 'success');
+}
+function removeMember(name) {
+  state.members = state.members.filter(m=>m!==name);
+  saveState(); populateSelects(); renderConfig();
+}
+function addGenReason() {
+  const val = document.getElementById('new-gen-reason').value.trim();
+  if(!val||state.genReasons.includes(val)) return;
+  state.genReasons.push(val);
+  saveState(); populateSelects(); renderConfig();
+  document.getElementById('new-gen-reason').value = '';
+}
+function removeGenReason(r) { state.genReasons=state.genReasons.filter(x=>x!==r); saveState(); populateSelects(); renderConfig(); }
+function addUseReason() {
+  const val = document.getElementById('new-use-reason').value.trim();
+  if(!val||state.useReasons.includes(val)) return;
+  state.useReasons.push(val);
+  saveState(); populateSelects(); renderConfig();
+  document.getElementById('new-use-reason').value = '';
+}
+function removeUseReason(r) { state.useReasons=state.useReasons.filter(x=>x!==r); saveState(); populateSelects(); renderConfig(); }
+
+// ===================== GOOGLE SHEETS SYNC =====================
+function saveGasUrl() {
+  const url = document.getElementById('gas-url').value.trim();
+  state.gasUrl = url;
+  saveState();
+  showToast('URL이 저장되었습니다.', 'success');
+  document.getElementById('gas-status').textContent = url ? '✅ URL 저장됨' : '';
+}
+
+async function testGasConnection() {
+  const url = document.getElementById('gas-url').value.trim();
+  if(!url) return showToast('URL을 먼저 입력해주세요.', 'error');
+  document.getElementById('gas-status').textContent = '⏳ 연결 테스트 중...';
+  try {
+    await fetch(url, { method:'POST', body: JSON.stringify({action:'read', sheet:'탄력시간발생'}), mode:'no-cors' });
+    document.getElementById('gas-status').textContent = '✅ 연결 성공 (no-cors 모드)';
+    showToast('연결 테스트 완료!', 'success');
+  } catch(e) {
+    document.getElementById('gas-status').textContent = '❌ 연결 실패: ' + e.message;
+    showToast('연결 실패: ' + e.message, 'error');
+  }
+}
+
+async function syncToSheets(record, sheetName) {
+  if(!state.gasUrl) return;
+  try {
+    const d = new Date(record.date);
+    const days=['일','월','화','수','목','금','토'];
+    const row = [record.id, record.employee, record.date, days[d.getDay()], toDisplay(toDecimal(record.hours,record.minutes)), record.reason, record.note||'', d.getFullYear(), toDecimal(record.hours,record.minutes)];
+    await fetch(state.gasUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action:'append', sheet:sheetName, row }),
+      mode: 'no-cors'
+    });
+  } catch(e) { console.warn('Sheets sync failed:', e); }
+}
+
+// ===================== EXPORT =====================
+function exportCSV() {
+  const header = 'ID,유형,팀원명,날짜,시간(시),시간(분),사유,비고,등록시각\n';
+  const rows = state.records.map(r =>
+    `${r.id},${r.type==='generate'?'발생':'사용'},${r.employee},${r.date},${r.hours},${r.minutes},${r.reason},"${r.note||''}",${new Date(r.ts).toLocaleString()}`
+  ).join('\n');
+  const blob = new Blob(['\uFEFF'+header+rows], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `탄력근무내역_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ===================== RESET =====================
+function confirmReset() {
+  openModal('전체 데이터 초기화', '모든 입력 내역이 삭제됩니다. 계속하시겠습니까?', () => {
+    state.records = [];
+    saveState();
+    renderDashboard();
+    renderHistory();
+    showToast('데이터가 초기화되었습니다.', 'success');
+  });
+}
+
+// ===================== NAVIGATION =====================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='history') renderHistory();
+  if(name==='dashboard') renderDashboard();
+  if(name==='config') renderConfig();
+}
+
+// ===================== TOAST =====================
+function showToast(msg, type='success') {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type==='success'?'✅':'❌'}</span><span>${msg}</span>`;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+// ===================== MODAL =====================
+let modalCallback = null;
+function openModal(title, desc, cb) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-desc').textContent = desc;
+  document.getElementById('modal-bg').classList.add('open');
+  modalCallback = cb;
+}
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); modalCallback=null; }
+document.getElementById('modal-confirm-btn').onclick = () => { if(modalCallback) modalCallback(); closeModal(); };
+document.getElementById('modal-bg').onclick = (e) => { if(e.target===e.currentTarget) closeModal(); };
+
+// Enter key on add inputs
+['new-member','new-gen-reason','new-use-reason'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key==='Enter') {
+      if(id==='new-member') addMember();
+      else if(id==='new-gen-reason') addGenReason();
+      else addUseReason();
+    }
+  });
+});
+
+// ===================== START =====================
+init();
+</script>
+</body>
+</html>
